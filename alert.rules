@@ -1,0 +1,42 @@
+groups:
+  - name: aws_infrastructure_alerts
+    rules:
+      # 1. Cảnh báo khi một EC2 Instance bị Down
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} dừng hoạt động"
+          description: "Prometheus không thể kết nối tới Node Exporter trên instance {{ $labels.instance }} trong hơn 1 phút."
+
+      # 2. Cảnh báo khi CPU quá tải (Trên 90%)
+      - alert: HostHighCpuLoad
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU quá tải trên {{ $labels.instance }}"
+          description: "Mức sử dụng CPU hiện tại là {{ $value | printf \"%.2f\" }}% (vượt ngưỡng 90%) trong 5 phút."
+
+      # 3. Cảnh báo khi RAM sắp hết (Còn dưới 10%)
+      - alert: HostOutOfMemory
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Sắp hết RAM trên {{ $labels.instance }}"
+          description: "Bộ nhớ khả dụng hiện tại chỉ còn {{ $value | printf \"%.2f\" }}%."
+
+      # 4. Cảnh báo khi ổ cứng sắp đầy (Còn dưới 15%)
+      - alert: HostOutOfDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"}  * 100) / node_filesystem_size_bytes{mountpoint="/"} < 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ổ cứng sắp đầy trên {{ $labels.instance }}"
+          description: "Dung lượng trống trên phân vùng root (/) còn dưới 15% (Hiện tại: {{ $value | printf \"%.2f\" }}%)."

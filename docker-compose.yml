@@ -1,0 +1,184 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: aiops-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aiops_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aiops_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-aiops_db}
+      POSTGRES_MAX_CONNECTIONS: 100
+      POSTGRES_SHARED_BUFFERS: 256MB
+      POSTGRES_EFFECTIVE_CACHE_SIZE: 1GB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    networks:
+      - aiops-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: aiops-redis
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru --save 60 1000
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1.5G
+        reservations:
+          cpus: '0.5'
+          memory: 500M
+    networks:
+      - aiops-network
+
+  app:
+    build: .
+    container_name: aiops-app
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${AI_AGENT_PORT:-8000}:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./vector_db:/app/vector_db:cached
+      - ./config:/app/config:ro
+    environment:
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-aiops_user}:${POSTGRES_PASSWORD:-aiops_pass}@db:5432/${POSTGRES_DB:-aiops_db}
+      - VECTOR_DB_PATH=/app/vector_db
+      - PROMETHEUS_URL=http://prometheus:9090
+      - ALERTMANAGER_URL=http://alertmanager:9093
+      - WORKERS=4
+      - UVICORN_LOG_LEVEL=info
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+    networks:
+      - aiops-network
+
+  worker:
+    build: .
+    container_name: aiops-worker
+    restart: always
+    command: celery -A core.celery_app worker --loglevel=info --concurrency=4 --prefetch-multiplier=2 --time-limit=600 --soft-time-limit=540
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./vector_db:/app/vector_db:cached
+    environment:
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-aiops_user}:${POSTGRES_PASSWORD:-aiops_pass}@db:5432/${POSTGRES_DB:-aiops_db}
+      - VECTOR_DB_PATH=/app/vector_db
+    env_file:
+      - .env
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    networks:
+      - aiops-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: aiops-prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--query.timeout=5m'
+      - '--query.max-samples=10000000'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alert.rules:/etc/prometheus/alert.rules:ro #Thêm file alert.rules vào thư mục gốc của dự án
+      - prometheus_data:/prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - aiops-network
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: aiops-alertmanager
+    restart: always
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    networks:
+      - aiops-network
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  alertmanager_data:
+  redis_data:
+
+networks:
+  aiops-network:
+    driver: bridge

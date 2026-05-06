@@ -1,0 +1,7 @@
+route:
+  receiver: 'aiops-webhook'
+
+receivers:
+  - name: 'aiops-webhook'
+    webhook_configs:
+      - url: 'http://app:8000/webhook'
