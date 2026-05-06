@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# Configuration & Secrets
+.env
+*.local
+config/services_config.json.local
+
+# Databases & Vector DB
+vector_db/
+*.sqlite3
+*.bin
+
+# Logs
+*.log
+logs/
+/var/log/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
