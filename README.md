@@ -1,10 +1,10 @@
-# 🤖 AIOps Intelligent Agent System
+# AIOps Intelligent Agent System
 
 > Hệ thống AI Agent tự động phát hiện, phân tích và đề xuất hướng xử lý sự cố trong hạ tầng CNTT — kết hợp monitoring, xử lý bất đồng bộ và AI.
 
 ---
 
-## 📐 Kiến trúc hệ thống
+##  Kiến trúc hệ thống
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -36,7 +36,7 @@
 
 ---
 
-## 🔄 Luồng hoạt động
+##  Luồng hoạt động
 
 ```
 1. Prometheus phát hiện bất thường
@@ -49,14 +49,14 @@
         ↓
 5. Kết quả gửi về Telegram
         ↓
-6. Người dùng chọn: ✅ Thực thi  hoặc  ❌ Bỏ qua
+6. Người dùng chọn:  Thực thi  hoặc   Bỏ qua
         ↓
 7. Hệ thống thực hiện hành động & lưu log
 ```
 
 ---
 
-## ⚙️ Cài đặt & chạy hệ thống
+##  Cài đặt & chạy hệ thống
 
 ### 1. Tạo file `.env`
 
@@ -92,7 +92,7 @@ Sau khi khởi động thành công:
 
 ---
 
-## ⚠️ Lưu ý quan trọng (Docker networking)
+##  Lưu ý quan trọng (Docker networking)
 
 Khi các service chạy trong Docker, **không dùng `localhost`** để giao tiếp giữa các container — hãy dùng **tên service** thay thế:
 
@@ -103,19 +103,19 @@ Khi các service chạy trong Docker, **không dùng `localhost`** để giao ti
 
 ---
 
-## 🛠️ Chức năng chính
+##  Chức năng chính
 
 Các chức năng được đóng gói thành **tools** để AI Agent sử dụng:
 
-- 🔍 Kiểm tra trạng thái service
-- 📋 Phân tích log
-- 🌐 Kiểm tra network / port
-- 📊 Theo dõi tài nguyên (CPU, RAM, disk)
-- 🔧 Đề xuất & thực thi hành động khắc phục
+-  Kiểm tra trạng thái service
+-  Phân tích log
+-  Kiểm tra network / port
+-  Theo dõi tài nguyên (CPU, RAM, disk)
+-  Đề xuất & thực thi hành động khắc phục
 
 ---
 
-## 📡 Monitoring & Debug
+##  Monitoring & Debug
 
 ### Endpoints
 
@@ -140,7 +140,7 @@ docker compose logs -f worker    # Log Celery
 
 ---
 
-## 🧪 Test hệ thống
+##  Test hệ thống
 
 **Bước 1:** Chạy Ngrok để expose webhook
 
@@ -183,7 +183,7 @@ curl.exe -X POST "http://localhost:8000/webhook" `
 
 ---
 
-## 🐛 Lỗi thường gặp
+##  Lỗi thường gặp
 
 <details>
 <summary><b>❌ Redis không kết nối được</b></summary>
@@ -204,7 +204,7 @@ docker compose ps redis
 </details>
 
 <details>
-<summary><b>❌ Celery không chạy task</b></summary>
+<summary><b> Celery không chạy task</b></summary>
 
 **Cách xử lý:**
 ```bash
@@ -214,7 +214,7 @@ docker compose ps redis         # Đảm bảo Redis đang chạy
 </details>
 
 <details>
-<summary><b>❌ Telegram webhook lỗi</b></summary>
+<summary><b> Telegram webhook lỗi</b></summary>
 
 **Nguyên nhân:** Telegram yêu cầu endpoint phải là **HTTPS**.
 
@@ -227,7 +227,7 @@ ngrok http 8000
 
 ---
 
-## 🚀 Hướng phát triển
+##  Hướng phát triển
 
 - [ ] Thêm **Nginx** làm reverse proxy
 - [ ] **Dashboard** theo dõi Celery tasks
